@@ -1,0 +1,105 @@
+﻿@using BlazorCookieLogin.Entity;
+@inject IDispatchService<string> DispatchService
+
+<Table TItem="TestRole" IsBordered="true" ShowAddButton="true" ShowToolbar="true" IsMultipleSelect="true"
+       ShowExtendButtons="true" ShowDeleteButtonCallback="entity => entity.Id != 1"
+       OnQueryAsync="OnQueryAsync" OnSaveAsync="OnSaveAsync">
+    <TableColumns>
+        <TableColumn @bind-Field="@context.Name"></TableColumn>
+        <TableColumn @bind-Field="@context.Id"></TableColumn>
+    </TableColumns>
+    <RowButtonTemplate>
+        <TableCellButton Color="Color.Success" Icon="fa fa-edit" Text="编辑权限" OnClick="() => RoleClick(context)"></TableCellButton>
+    </RowButtonTemplate>
+</Table>
+
+<Modal @ref="RoleModal">
+    <ModalDialog Title="编辑权限">
+        <BodyTemplate>
+            <TreeView TItem="TestMenu" Items="@Menus" ShowCheckbox="true" AutoCheckParent="true" AutoCheckChildren="true"></TreeView>
+        </BodyTemplate>
+        <FooterTemplate>
+            <Button OnClick="SavePermission">保存</Button>
+        </FooterTemplate>
+    </ModalDialog>
+</Modal>
+
+@code {
+
+    private Modal? RoleModal { get; set; }
+
+    private List<TreeViewItem<TestMenu>>? Menus { get; set; }
+
+    private TestRole? TestRole { get; set; }
+
+    private Task<QueryData<TestRole>> OnQueryAsync(QueryPageOptions arg)
+    {
+        var roles = TestRole.Select.IncludeMany(x => x.Permissions).Page(arg.PageIndex, arg.PageItems)
+            .Count(out var count).ToList();
+        return Task.FromResult(new QueryData<TestRole>
+            {
+                TotalCount = (int)count,
+                Items = roles
+            });
+    }
+
+    private void RoleClick(TestRole testRole)
+    {
+        TestRole = testRole;
+        Menus = CascadingTree(TestMenu.Select.ToList(), TestRole.Permissions, new TreeViewItem<TestMenu>(new TestMenu())).ToList();
+        RoleModal?.Toggle();
+    }
+
+    private IEnumerable<TreeViewItem<TestMenu>> CascadingTree(IEnumerable<TestMenu> items, IEnumerable<TestMenu>? selectedItems, TreeViewItem<TestMenu> parent)
+    {
+        return items.Where(i => i.ParentId == parent.Value.Id).Select(i =>
+        {
+            var item = new TreeViewItem<TestMenu>(i)
+                {
+                    Text = i.Name,
+                    Icon = i.Icon,
+                    Value = i
+                };
+            item.Items = CascadingTree(items, selectedItems, item).ToList();
+            item.Parent = parent;
+            if (selectedItems?.Any(x => x.Id == i.Id) == true)
+            {
+                item.CheckedState = CheckboxState.Checked;
+            }
+            return item;
+        });
+    }
+
+    private Task<bool> OnSaveAsync(TestRole arg1, ItemChangedType arg2)
+    {
+        arg1.Save();
+        return Task.FromResult(true);
+    }
+
+    private void SavePermission()
+    {
+        if (TestRole == null)
+        {
+            return;
+        }
+        var menus = new List<TestMenu>();
+        SaveRole(Menus!.Where(x => x.CheckedState != CheckboxState.UnChecked), menus);
+        TestRole.Permissions = menus;
+        TestRole.SaveMany(nameof(TestRole.Permissions));
+        RoleModal?.Toggle();
+        DispatchService.Dispatch(new DispatchEntry<string> { Entry = "role" });
+    }
+
+    private void SaveRole(IEnumerable<TreeViewItem<TestMenu>> items, List<TestMenu> menus)
+    {
+        menus.AddRange(items.Select(x => x.Value));
+        foreach (var treeViewItem in items)
+        {
+            if (treeViewItem.Items.Any(x => x.CheckedState != CheckboxState.UnChecked))
+            {
+                SaveRole(treeViewItem.Items.Where(x => x.CheckedState != CheckboxState.UnChecked), menus);
+            }
+        }
+    }
+
+}

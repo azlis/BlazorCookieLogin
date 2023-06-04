@@ -1,0 +1,86 @@
+﻿@using BlazorCookieLogin.Entity;
+
+<Table TItem="TestMenu"
+       IsMultipleSelect="true"
+       IsBordered="true"
+       ShowAddButton="true"
+       ShowToolbar="true"
+       ShowExtendButtons="true"
+       IsTree="true"
+       TreeNodeConverter="TreeNodeConverter"
+       OnDeleteAsync="OnDeleteAsync"
+       OnTreeExpand="OnTreeExpand"
+       OnQueryAsync="OnQueryAsync"
+       OnSaveAsync="OnSaveAsync">
+    <TableColumns>
+        <TableColumn @bind-Field="@context.Seq"></TableColumn>
+        <TableColumn @bind-Field="@context.Name"></TableColumn>
+        <TableColumn @bind-Field="@context.Icon"></TableColumn>
+        <TableColumn @bind-Field="@context.Url"></TableColumn>
+        <TableColumn @bind-Field="@context.ParentId" Visible="false" Lookup="ItemMenus"></TableColumn>
+    </TableColumns>
+    <EditTemplate Context="v">
+        <MenuEditor Value="v" ParementMenus="ItemMenus" Targets="Targets" Apps="Apps" />
+    </EditTemplate>
+</Table>
+@code {
+
+    [NotNull]
+    private List<SelectedItem>? Targets { get; set; }
+
+    [NotNull]
+    private List<SelectedItem>? Apps { get; set; }
+
+    [NotNull]
+    private List<SelectedItem>? ItemMenus { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        ItemMenus = new List<SelectedItem>();
+        ItemMenus.Add(new SelectedItem("", "顶级菜单"));
+        ItemMenus.AddRange(TestMenu.Select.ToList(x => new SelectedItem(x.Id.ToString(), x.Name!)));
+    }
+
+    private Task<QueryData<TestMenu>> OnQueryAsync(QueryPageOptions arg)
+    {
+        var items = TestMenu.Select.OrderBy(x => x.Seq).ToTreeList();
+        return Task.FromResult(new QueryData<TestMenu>
+            {
+                Items = items,
+                TotalCount = items.Count
+            });
+    }
+
+    private Task<bool> OnSaveAsync(TestMenu arg1, ItemChangedType arg2)
+    {
+        arg1.Save();
+        return Task.FromResult(true);
+    }
+
+    private Task<IEnumerable<TableTreeNode<TestMenu>>> TreeNodeConverter(IEnumerable<TestMenu> arg)
+    {
+        return Task.FromResult(arg.Select(x => new TableTreeNode<TestMenu>(x)
+            {
+                HasChildren = x.Children is { Count: > 0 }
+            }));
+    }
+
+    private Task<IEnumerable<TableTreeNode<TestMenu>>> OnTreeExpand(TestMenu arg)
+    {
+        return Task.FromResult(arg.Children!.Select(x => new TableTreeNode<TestMenu>(x)
+            {
+                HasChildren = x.Children is { Count: > 0 }
+            }));
+    }
+
+    private Task<bool> OnDeleteAsync(IEnumerable<TestMenu> arg)
+    {
+        foreach (var item in arg)
+        {
+            item.Delete();
+        }
+        return Task.FromResult(true);
+    }
+
+}

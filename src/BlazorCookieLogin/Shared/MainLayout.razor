@@ -1,0 +1,38 @@
+﻿@inherits LayoutComponentBase
+@inject DialogService DialogService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>@_title</PageTitle>
+
+<Layout SideWidth="0" IsPage="true" IsFullSide="true" IsFixedHeader="true" IsFixedFooter="true"
+        ShowFooter="false" ShowCollapseBar="true" Menus="@_menuItems">
+    <Header>
+        <span class="ms-3 flex-sm-fill d-none d-sm-block">
+
+        </span>
+
+        <Logout ImageUrl="favicon.png" DisplayName="@_user?.Name" UserName="@_user?.UserName">
+            <LinkTemplate>
+                <a role="button" aria-disabled="false">
+                    <i class="fa fa-gear"></i>
+                    <span @onclick="ChangePassword">修改密码</span>
+                </a>
+                <LogoutLink Url="/Account/Logout"></LogoutLink>
+            </LinkTemplate>
+        </Logout>
+    </Header>
+    <Side>
+        <div class="layout-banner">
+            <div class="layout-title">
+                <span>@_title</span>
+            </div>
+        </div>
+    </Side>
+    <Main>
+        <CascadingValue Value="this" IsFixed="true">
+            @Body
+        </CascadingValue>
+    </Main>
+</Layout>
+

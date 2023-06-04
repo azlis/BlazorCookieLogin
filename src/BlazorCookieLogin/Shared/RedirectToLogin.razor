@@ -1,0 +1,9 @@
+﻿@inject NavigationManager nav
+
+@code {
+protected override void OnAfterRender(bool firstRender)
+{
+base.OnAfterRender(firstRender);
+nav.NavigateTo("/Account/Login", true);
+}
+}
