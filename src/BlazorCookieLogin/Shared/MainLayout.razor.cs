@@ -11,7 +11,7 @@ namespace BlazorCookieLogin.Shared;
 
 public partial class MainLayout
 {
-    private readonly string _title = "BlazorCookieLogin";
+    private readonly string _title = "BlazorLogin";
 
     private List<MenuItem>? _menuItems;
     private TestUser? _user;
